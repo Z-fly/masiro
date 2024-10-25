@@ -14,74 +14,28 @@ on:
           - debug
 
 jobs:
-  build-linux-app:
-    runs-on: ubuntu-latest
+  build-macos-app:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - run: echo "COMMIT_SHORT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-      - run: echo "BUILD_ARTIFACT=masiro-${{ env.COMMIT_SHORT_HASH }}-linux.zip" >> $GITHUB_ENV
-      - run: sudo apt-get install curl unzip xz-utils zip libglu1-mesa clang cmake ninja-build pkg-config libayatana-appindicator3-dev libgtk-3-dev liblzma-dev libstdc++-12-dev -y
+      - run: echo "BUILD_ARTIFACT=masiro-${{ env.COMMIT_SHORT_HASH }}-macos.zip" >> $GITHUB_ENV
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
       - run: flutter --version
       - run: flutter pub get
-      - run: flutter build linux
+      - run: flutter build macos
       - run: |
           (
-          cd build/linux/x64/release/bundle && zip -r ${{ env.BUILD_ARTIFACT }} .
+          cd build/macos/Build/Products/Release && zip -r ${{ env.BUILD_ARTIFACT }} .
           )
-          mv build/linux/x64/release/bundle/${{ env.BUILD_ARTIFACT }} .
+          mv build/macos/Build/Products/Release/${{ env.BUILD_ARTIFACT }} .
       - name: Release
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
           artifacts: ${{ env.BUILD_ARTIFACT }}
           tag: ${{ env.COMMIT_SHORT_HASH }}
-          prerelease: true
-
-  build-android-app:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: echo "COMMIT_SHORT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-      - run: echo "RELEASE_DIR=release" >> $GITHUB_ENV
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - run: flutter --version
-      - run: flutter pub get
-      - run: flutter build apk --split-per-abi --no-tree-shake-icons
-      - run: |
-          mkdir -p ${{ env.RELEASE_DIR }}
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk ${{ env.RELEASE_DIR }}
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk ${{ env.RELEASE_DIR }}
-          cd ${{ env.RELEASE_DIR }}
-          mv app-arm64-v8a-release.apk masiro-${{ env.COMMIT_SHORT_HASH }}-arm64-v8a-release.apk
-          mv app-armeabi-v7a-release.apk masiro-${{ env.COMMIT_SHORT_HASH }}-armeabi-v7a-release.apk
-          cd ..
-      - name: Sign app APK
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: ${{ env.RELEASE_DIR }}
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          alias: ${{ secrets.ALIAS }}
-          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-        env:
-          BUILD_TOOLS_VERSION: "34.0.0"
-      - name: Release
-        uses: ncipollo/release-action@v1
-        with:
-          allowUpdates: true
-          artifacts: "${{ env.RELEASE_DIR }}/masiro-${{ env.COMMIT_SHORT_HASH }}-*-release-signed.apk"
-          tag: ${{ env.COMMIT_SHORT_HASH }}
-          prerelease: true
+          prerelease: tru
